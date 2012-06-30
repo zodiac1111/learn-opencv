@@ -1,7 +1,6 @@
 /*
   从视频文件读取视频 显示出来;不包含任何控制
   */
-//using namespace std;
 #include <opencv2/highgui/highgui_c.h>//包含opencv库头文件
 #include <opencv2/core/core_c.h>
 
