@@ -1,6 +1,9 @@
+//旧版本的库?
+//#include <opencv/highgui.h>
+//新版本的库
 #include <opencv2/highgui/highgui_c.h>//包含opencv库头文件
 #include <opencv2/core/core_c.h>
-//#include <libv4l1.h>
+
 int main( int argc, char** argv ) {//主函数
 
 
