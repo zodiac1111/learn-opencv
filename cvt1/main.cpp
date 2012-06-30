@@ -1,8 +1,8 @@
 #include <QtGui/QApplication>
 #include "mainwindow.h"
-#include "cv.h"
-#include "highgui.h"
-#include "QImage"
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include <QImage>
 class QCvImage{
 
 private:
