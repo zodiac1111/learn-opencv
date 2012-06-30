@@ -15,6 +15,7 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h
 
+#界面
 FORMS    += mainwindow.ui
 
 #头文件 用库文件包含2方式就不需要这个了
