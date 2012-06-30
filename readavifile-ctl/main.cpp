@@ -29,6 +29,7 @@ int main( void) {
 	//frame = cvQueryFrame( capture );//需要读取一次才能正确读取帧数
 	//frame = cvQueryFrame( capture );
 	frames =  cvGetCaptureProperty(capture,CV_CAP_PROP_FRAME_COUNT);
+	//TODO 帧数读取错误
 	frames++;
 	if(true){ //创建一个滚动条
 		cvCreateTrackbar("pos" //滚动条名称
