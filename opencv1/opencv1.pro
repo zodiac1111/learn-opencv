@@ -5,5 +5,7 @@ SOURCES += \
 #INCLUDEPATH +=  /usr/include/opencv2
 
 #库文件
-LIBS += /usr/lib/libopencv_core.so \
-	/usr/lib/libopencv_highgui.so
+#LIBS += /usr/lib/libopencv_core.so \
+#	/usr/lib/libopencv_highgui.so
+LIBS += -lopencv_core \
+	 -lopencv_highgui \
