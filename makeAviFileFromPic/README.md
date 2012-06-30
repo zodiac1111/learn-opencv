@@ -1,0 +1,1 @@
+linux(fedora17-i686)下使用QT编译.
