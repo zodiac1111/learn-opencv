@@ -1,8 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <opencv/cv.h>
-#include <opencv/highgui.h>
-#include <QImage>
+
 class QCvImage{
 
 private:
