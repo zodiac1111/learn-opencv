@@ -17,7 +17,7 @@ int main( int argc, char** argv ) {//主函数
 		frame = cvQueryFrame( capture );// 从摄像头中抓取并返回每一帧
 		if( !frame ) break;
 
-		cvShowImage( "opencv测试显示窗口", frame );//在窗口上显示每一帧
+        cvShowImage( "opencv测试显示窗口(Esc退出)", frame );//在窗口上显示每一帧
 		char c = cvWaitKey(1000/40);//延时，每秒钟约33帧；符合人眼观看速度；
 		if( c == 27 ) {
 			break;//由于是死循环，而且没有控制台，当按下键盘ESC键，退出循环；
