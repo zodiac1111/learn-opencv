@@ -1,6 +1,8 @@
 # swp #
 *.sw[op]
 *~
+#avi #
+*.avi
 
 #qt项目配置文件
 *.user
