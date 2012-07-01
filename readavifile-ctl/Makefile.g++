@@ -1,0 +1,4 @@
+all:
+	g++ main.cpp -o readavifile-ctl -I/usr/lib/qt4/mkspecs/linux-g++ -I. -I/usr/include/QtCore -I/usr/include/QtGui -I/usr/include -I.  -L/usr/lib -lopencv_core -lopencv_highgui -lQtGui -lQtCore -lpthread 
+
+
