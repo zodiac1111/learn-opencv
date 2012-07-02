@@ -16,9 +16,10 @@ void onTrackBarChange(int pos)
 int main( void) {
 
 	IplImage* frame;//申请IplImage类型指针，就是申请内存空间来存放每一帧图像
-	const char *videofile=\
-			"/home/zodiac1111/arm/learn-opencv/"
-			"readavifile/2012-06-30-165111.webm";
+//	const char *videofile=\
+//			"/home/zodiac1111/arm/learn-opencv/"
+//			"readavifile/2012-06-30-165111.webm";
+	const char *videofile=	"/home/zodiac1111/Downloads/S7N4Q65CQ.flv";
 	char key=0;//按键
 	int frames =0;
 
@@ -27,7 +28,7 @@ int main( void) {
 	capture=cvCreateFileCapture(videofile);
 	//获取CV_CAP_PROP_FRAME_COUNT 视屏文件中帧的总数
 	//frame = cvQueryFrame( capture );//需要读取一次才能正确读取帧数
-	//frame = cvQueryFrame( capture );
+	frame = cvQueryFrame( capture );
 	frames =  cvGetCaptureProperty(capture,CV_CAP_PROP_FRAME_COUNT);
 	//TODO 帧数读取错误
 	frames++;

@@ -8,6 +8,7 @@
 
 int main()
 {
+	int ret;
 	CvSize size=cvSize(128,128); //指定视频文件大小
 	double fps=3;//每秒3帧.方便观看
 	//图片绝对路径 注意%d
@@ -15,7 +16,11 @@ int main()
 			"/home/zodiac1111/arm/learn-opencv/makeAviFileFromPic/pic/led_%d.png";
 	const char *avi_out="/home/zodiac1111/arm/learn-opencv/makeAviFileFromPic/out.avi";
 	CvVideoWriter *writer=cvCreateVideoWriter(avi_out
-						  ,CV_FOURCC('X', 'V', 'I', 'D') //解码器独立于opencv
+						  //解码器独立于opencv
+						  ,CV_FOURCC('X', 'V', 'I', 'D') //
+						  // ,CV_FOURCC('D', 'I', 'V', 'X')
+						   //,CV_FOURCC('X', '2', '6', '4') //h264的一种实现
+						   //,CV_FOURCC('Y', 'U', 'V', '9')
 						  ,fps
 						  ,size
 						  ,1);
@@ -32,7 +37,7 @@ int main()
 		cvShowImage("makeavi",src_resize);//显示可选,仅为了能看到过程
 		cvWaitKey(100); //等待久点方便观看
 		cvResize(src,src_resize,CV_INTER_NN);//缩放图片
-		cvWriteFrame(writer,src_resize);//将缩放后的图片写入avi
+		ret=cvWriteFrame(writer,src_resize);//将缩放后的图片写入avi
 		//写完一帧 释放一帧
 		cvReleaseImage(&src); //释放源图片
 		picindex++;//下一张图片
@@ -40,7 +45,7 @@ int main()
 		src=cvLoadImage(filename);//加载下一张源图片
 
 	}
-	cvReleaseVideoWriter(&writer);// 释放
+	cvReleaseVideoWriter(&writer);// 写入完成释放
 	cvReleaseImage(&src_resize);//释放缩放用的框架
 	return 0;
 }
