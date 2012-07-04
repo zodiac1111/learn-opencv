@@ -10,7 +10,11 @@ int main( int argc, char** argv ) {//主函数
 	//创建窗口，（名字，默认大小）
 	cvNamedWindow( "opencv测试主控制窗口", CV_WINDOW_AUTOSIZE );
 	//打开摄像头，从摄像头中获取视频
-	capture = cvCreateCameraCapture(0);
+//	capture = cvCreateCameraCapture(0);
+	//rtsp
+	capture = cvCreateCameraCapture("rtsp://127.0.0.1:/1");
+	//rtsp
+	//capture = cvCreateCameraCapture("rtsp://127.0.0.1:/1");
 	while(1) {
 		frame = cvQueryFrame( capture );// 从摄像头中抓取并返回每一帧
 		if( !frame ) break;
