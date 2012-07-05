@@ -154,16 +154,6 @@ int start_capturing(int fd)
 	}
 	return 0;
 }
-typedef unsigned char u8;
-//
-void yuyv2rgb(u8 Y,u8 U,u8 V
-	     ,u8 *R,u8 *G ,u8 *B)
-{
-
-	*R= Y +1.4075 *(V - 128);
-	*G = Y - 0.3455 *(U - 128)- 0.7169 *(V -128);
-	*B = Y + 1.779 *(U - 128);
-}
 
 //将采集好的数据放到文件中
 int process_image(void *addr,int length)
@@ -176,10 +166,7 @@ int process_image(void *addr,int length)
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
 	}
-
-	yuyv2rgb(*addr,*(addr+1),*(addr+2));
 	fwrite(addr,length,1,fp);
-
 	usleep(500);
 	fclose(fp);
 	return 0;

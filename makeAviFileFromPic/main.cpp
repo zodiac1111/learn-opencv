@@ -43,7 +43,6 @@ int main()
 		picindex++;//下一张图片
 		sprintf(filename,pics,picindex);
 		src=cvLoadImage(filename);//加载下一张源图片
-
 	}
 	cvReleaseVideoWriter(&writer);// 写入完成释放
 	cvReleaseImage(&src_resize);//释放缩放用的框架
