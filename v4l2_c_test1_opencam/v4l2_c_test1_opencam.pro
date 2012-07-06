@@ -1,17 +1,19 @@
 TEMPLATE = app
 CONFIG += console
 CONFIG -= qt
-QT       += core gui
+#QT       += core gui
 SOURCES += \
 	main.c \
-	image.c
+	image.c \
+    jpg.c
 
 
 
 
 HEADERS += \
     main.h \
-	image.h
+	image.h \
+    jpg.h
 
 
 #设置库搜索目录

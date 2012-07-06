@@ -2,9 +2,10 @@
 	企图用v4l直接调用摄像头获得数据
 	实现功能:
 		采集数据 格式YUYV
-	未实现:
-		1 YUYV->RGB888 /24
-		2 显示图片等等.
+		YUYV -> RGB888 -> bmpfile.
+		YUYV -> RGB888 -> Jpg file. could be 1 step?
+	TODO:
+		YUYV->jpg/jpg file
 */
 #include "main.h"
 #include <stdio.h>
@@ -17,6 +18,8 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <linux/videodev2.h>
+#include <jpeglib.h>
+#include "jpg.h"
 #define c_width 640
 #define c_hight 480
 //#include <opencv/cvwimage.h>
@@ -170,7 +173,7 @@ int start_capturing(int fd)
 
 //
 void yuyv2rgb( int Y,int U,int V
-	       ,u8 *B,u8 *G ,u8 *R)
+	       ,u8 *R,u8 *G ,u8 *B)
 {
 	//u8 r ,g,b;
 		*R = Y + 1.14*(V-128);
@@ -201,7 +204,38 @@ int process_image(void *addr,int length)
 	FILE *fp;
 	static int num = 0;
 	char picture_name[20];
-	sprintf(picture_name,"picture%d.bmp",num ++);
+	sprintf(picture_name,"picture%d.jpg",num ++);
+
+#define  YUYV_2_JPG_FILE
+#ifdef YUYV_2_JPG_FILE
+	u8 s[640*480*3]; int i=0;int j=0;int k=0;
+	u8 y1,u,y2,v; //依次读取4字节/2像素
+	for(i=0;i<c_hight;i++) //行 从最 底行->顶行 *** bottom -> top
+		for(j=0;j<c_width*2;){ //列 2byte/pix lift -> right
+			y1=*(int*)(addr+i*c_width*2+j+0);
+			u=*(int*)(addr+i*c_width*2+j+1);
+			y2=*(int*)(addr+i*c_width*2+j+2);
+			v=*(int*)(addr+i*c_width*2+j+3);
+			j+=4;//source :move to next 2 pixs (4byte)
+			yuyv2rgb(y1,u,v	,&s[k+0],&s[k+1],&s[k+2]);
+			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
+			k+=6;//detct :move to next 2 pixs (6byte)
+		}
+//	char *d[c_width*c_hight*3];
+//	int i=0;int j=0;
+//	//YUYV ->YUV YUV
+//	for(i=0;i<length;i+=4,j+=6){
+//		d[j+0]=*((char *)addr+i+0); //Y1
+//		d[j+1]=*((char *)addr+i+1); //U1
+//		d[j+2]=*((char *)addr+i+3); //V1
+//		d[j+3]=*((char *)addr+i+2); //Y2
+//		d[j+4]=*((char *)addr+i+1); //U1
+//		d[j+5]=*((char *)addr+i+3); //V1
+//	}
+	write_JPEG_file(s,c_width,c_hight,picture_name,1000);
+	usleep(500);
+
+#else
 	if((fp = fopen(picture_name,"w")) == NULL){
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
@@ -215,7 +249,7 @@ int process_image(void *addr,int length)
 	//printf("size of head=%d",sizeof(head));//
 	write_file_head(&fp); //文件头
 
-	for(i=c_hight-1;i>=0;i--) //行 从最 底行->顶行 bottom -> top
+	for(i=c_hight-1;i>=0;i--) //行 从最 底行->顶行 *** bottom -> top
 		for(j=0;j<c_width*2;){ //列 2byte/pix lift -> right
 			y1=*(int*)(addr+i*c_width*2+j+0);
 			u=*(int*)(addr+i*c_width*2+j+1);
@@ -234,6 +268,8 @@ int process_image(void *addr,int length)
 #endif
 	usleep(500);
 	fclose(fp);
+#endif
+
 	return 0;
 }
 
@@ -363,8 +399,7 @@ void write_file_head(FILE**fp)
 	infohead.biYPelsPerMerer=hight;//42-45
 	infohead.biClrUsed=0;//46-49
 	infohead.biClrImportant=0;//50-53
-
-	//写入头文件
+	//write to file
 	fwrite(MagicNumber_hex,2,1,*fp);  //magic number
 	fwrite(&head,sizeof(head),1,*fp); //file head
 	fwrite(&infohead,sizeof(infohead),1,*fp); //bmp info head
