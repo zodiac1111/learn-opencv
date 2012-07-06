@@ -52,12 +52,13 @@ int main(void)
 void write_file_head(FILE**fp)
 {
 	struct bmp_file_head head;//文件头 14byte
+	struct bmp_info_head infohead; //位图头 40 byte
 	//Magic number 0~1
 	head.bfSize=width*hight*3+14+40 ;//文件大小 //2~5
 	head.bfReserved1=0;  //6~7
 	head.bfReserved2=0; //8~9
 	head.bfOffBits=2+12+40;//偏置 10~13
-	struct bmp_info_head infohead; //位图头 40 byte
+	//bmp file info head
 	infohead.biSize=40; //14~17
 	infohead.biWidth=width;//18-21
 	infohead.biHeight=hight;//22-25
@@ -70,24 +71,8 @@ void write_file_head(FILE**fp)
 	infohead.biClrUsed=0;//46-49
 	infohead.biClrImportant=0;//50-53
 
-	//写入头文件,因为结构体会对齐,所以必须一个一个写
-	//char j[2]={0x42,0x4d};
-	fwrite(MagicNumber_hex,2,1,*fp);
-	//fwrite(&head.bfType,2,1,*fp);
-	fwrite(&head,sizeof(head),1,*fp);
-	//	fwrite(&head.bfReserved1,sizeof(head.bfReserved1),1,*fp);
-	//	fwrite(&head.bfReserved2,sizeof(head.bfReserved2),1,*fp);
-	//	fwrite(&head.bfOffBits,sizeof(head.bfOffBits),1,*fp);
-	//写位图信息头
-	fwrite(&infohead,sizeof(infohead),1,*fp);
-	//	fwrite(&infohead.biWidth,sizeof(infohead.biWidth),1,*fp);
-	//	fwrite(&infohead.biHeight,sizeof(infohead.biHeight),1,*fp);
-	//	fwrite(&infohead.biPlanes,sizeof(infohead.biPlanes),1,*fp);
-	//	fwrite(&infohead.biBitCount,sizeof(infohead.biBitCount),1,*fp);
-	//	fwrite(&infohead.biCompression,sizeof(infohead.biCompression),1,*fp);
-	//	fwrite(&infohead.biSizeImage,sizeof(infohead.biSizeImage),1,*fp);
-	//	fwrite(&infohead.biXPelsPerMerer,sizeof(infohead.biXPelsPerMerer),1,*fp);
-	//	fwrite(&infohead.biYPelsPerMerer,sizeof(infohead.biYPelsPerMerer),1,*fp);
-	//	fwrite(&infohead.biClrUsed,sizeof(infohead.biClrUsed),1,*fp);
-	//	fwrite(&infohead.biClrImportant,sizeof(infohead.biClrImportant),1,*fp);
+	//写入头文件
+	fwrite(MagicNumber_hex,2,1,*fp);  //magic number
+	fwrite(&head,sizeof(head),1,*fp); //file head
+	fwrite(&infohead,sizeof(infohead),1,*fp); //bmp info head
 }

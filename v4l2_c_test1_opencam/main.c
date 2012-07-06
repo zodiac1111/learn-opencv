@@ -17,6 +17,8 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <linux/videodev2.h>
+#define c_width 640
+#define c_hight 480
 //#include <opencv/cvwimage.h>
 //#include <opencv/cxcore.h>
 //#include <opencv/highgui.h>
@@ -194,24 +196,36 @@ int process_image(void *addr,int length)
 #ifdef CHANGE_PIC_FORMAT
 	//每次读取4字节(2像素)的YUYV格式:Y0 U0 Y1 V0
 	//写入6字节(2像素) BGR BGR
-	u8 s[640*480*3]; int i;
+	u8 s[640*480*3]; int i=0;int j=0;int k=0;
+	u8 y1,u,y2,v; //依次读取4字节/2像素
 	//printf("size of head=%d",sizeof(head));//
 	write_file_head(&fp); //文件头
-	for(i=0;i<length;i=i+4){ //读取字节+4 byte
-		u8 y1,u,y2,v; //依次读取4字节/2像素
-		y1=addr+i+0;
-		u=addr+i+1;
-		y2=addr+i+2;
-		v=addr+i+3;
-		//第一个像素
-		yuyv2rgb(y1,u,v	,&s[i+0],&s[i+1],&s[i+2]);
-		//第二个像素
-		yuyv2rgb(y2,u,v	,&s[i+3],&s[i+4],&s[i+5]);
-	}
-	//写入两个像素
-	if(fwrite(s,6,1,fp)<=0){
-		perror("write data ");
-	}
+
+	for(i=c_hight-1;i>=0;i++)
+		for(j=0;j<c_width;j++){
+			y1=add[i*c_width+j+0];
+			u=add[i*c_width+j+1];
+			y2=add[i*c_width+j+2];
+			v=add[i*c_width+j+3];
+			yuyv2rgb(y1,u,v	,&s[k+0],&s[k+1],&s[k+2]);
+			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
+			k+=6;
+		}
+	fwrite(s,length,1,fp);
+//	for(i=0;i<length;i=i+4){ //读取字节+4 byte
+//		y1=addr+i+0;
+//		u=addr+i+1;
+//		y2=addr+i+2;
+//		v=addr+i+3;
+//		//第一个像素
+//		yuyv2rgb(y1,u,v	,&s[i+0],&s[i+1],&s[i+2]);
+//		//第二个像素
+//		yuyv2rgb(y2,u,v	,&s[i+3],&s[i+4],&s[i+5]);
+//	}
+//	//写入两个像素
+//	if(fwrite(s,6,1,fp)<=0){
+//		perror("write data ");
+//	}
 #else
 	fwrite(addr,length,1,fp);
 #endif
@@ -222,6 +236,7 @@ int process_image(void *addr,int length)
 
 int read_frame(int fd)
 {
+
 	struct v4l2_buffer buf;
 	unsigned int i;
 	bzero(&buf,sizeof(buf));
@@ -317,44 +332,37 @@ int main()
 	close_camer_device(fd);
 	return 0;
 }
+
+/*
+	bmp位图文件 文件头 参见:维基百科
+	http://en.wikipedia.org/wiki/BMP_file_format
+*/
 void write_file_head(FILE**fp)
 {
+	const int  width=c_width;//位图宽4字节的整数倍/不够补 00
+	const int  hight=c_hight;
 	struct bmp_file_head head;//文件头 14byte
-	head.bfType=0x424d;//BM 0~1
-	head.bfSize=640*480*3+14+40 ;//文件大小 //2~5
+	struct bmp_info_head infohead; //位图头 40 byte
+	//Magic number 0~1
+	head.bfSize=width*hight*3+14+40 ;//文件大小 //2~5
 	head.bfReserved1=0;  //6~7
 	head.bfReserved2=0; //8~9
-	head.bfOffBits=14+40;//偏置 10~13
-	struct bmp_info_head infohead; //位图头 40 byte
+	head.bfOffBits=2+12+40;//偏置 10~13
+	//bmp file info head
 	infohead.biSize=40; //14~17
-	infohead.biWidth=640;//18-21
-	infohead.biHeight=480;//22-25
+	infohead.biWidth=width;//18-21
+	infohead.biHeight=hight;//22-25
 	infohead.biPlanes=1;//26-27
 	infohead.biBitCount=24;//28-29
 	infohead.biCompression=0;//30-33
-	infohead.biSizeImage=640*320*3;//34-37
-	infohead.biXPelsPerMerer=640;//38-41
-	infohead.biYPelsPerMerer=480;//42-45
+	infohead.biSizeImage=width*hight*3;//34-37
+	infohead.biXPelsPerMerer=width;//38-41
+	infohead.biYPelsPerMerer=hight;//42-45
 	infohead.biClrUsed=0;//46-49
 	infohead.biClrImportant=0;//50-53
-	//写入头文件,因为结构体会对齐,所以必须一个一个写
-	char j[2]={0x42,0x4d};
-	fwrite(j,2,1,*fp);
-	//fwrite(&head.bfType,2,1,*fp);
-	fwrite(&head.bfSize,sizeof(head.bfSize),1,*fp);
-	fwrite(&head.bfReserved1,sizeof(head.bfReserved1),1,*fp);
-	fwrite(&head.bfReserved2,sizeof(head.bfReserved2),1,*fp);
-	fwrite(&head.bfOffBits,sizeof(head.bfOffBits),1,*fp);
-	//写位图信息头
-	fwrite(&infohead.biSize,sizeof(infohead.biSize),1,*fp);
-	fwrite(&infohead.biWidth,sizeof(infohead.biWidth),1,*fp);
-	fwrite(&infohead.biHeight,sizeof(infohead.biHeight),1,*fp);
-	fwrite(&infohead.biPlanes,sizeof(infohead.biPlanes),1,*fp);
-	fwrite(&infohead.biBitCount,sizeof(infohead.biBitCount),1,*fp);
-	fwrite(&infohead.biCompression,sizeof(infohead.biCompression),1,*fp);
-	fwrite(&infohead.biSizeImage,sizeof(infohead.biSizeImage),1,*fp);
-	fwrite(&infohead.biXPelsPerMerer,sizeof(infohead.biXPelsPerMerer),1,*fp);
-	fwrite(&infohead.biYPelsPerMerer,sizeof(infohead.biYPelsPerMerer),1,*fp);
-	fwrite(&infohead.biClrUsed,sizeof(infohead.biClrUsed),1,*fp);
-	fwrite(&infohead.biClrImportant,sizeof(infohead.biClrImportant),1,*fp);
+
+	//写入头文件
+	fwrite(MagicNumber_hex,2,1,*fp);  //magic number
+	fwrite(&head,sizeof(head),1,*fp); //file head
+	fwrite(&infohead,sizeof(infohead),1,*fp); //bmp info head
 }
