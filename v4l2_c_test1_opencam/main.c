@@ -1,3 +1,11 @@
+/*
+	企图用v4l直接调用摄像头获得数据
+	实现功能:
+		采集数据 格式YUYV
+	未实现:
+		1 YUYV->RGB888 /24
+		2 显示图片等等.
+*/
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
@@ -9,6 +17,9 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <linux/videodev2.h>
+//#include <opencv/cvwimage.h>
+//#include <opencv/cxcore.h>
+//#include <opencv/highgui.h>
 typedef struct
 {
 	void *start;
@@ -154,16 +165,19 @@ int start_capturing(int fd)
 	}
 	return 0;
 }
-typedef unsigned char u8;
-//
-void yuyv2rgb(u8 Y,u8 U,u8 V
-	     ,u8 *R,u8 *G ,u8 *B)
-{
 
-	*R= Y +1.4075 *(V - 128);
-	*G = Y - 0.3455 *(U - 128)- 0.7169 *(V -128);
-	*B = Y + 1.779 *(U - 128);
+//
+void yuyv2rgb( u8 Y,u8 U,u8 V
+	       ,u8 *R,u8 *G ,u8 *B)
+{
+	//u8 r ,g,b;
+	*R = Y + 1.14*V;
+	*G = Y - 0.39*U - 0.58*V;
+	*B = Y + 2.03*U;
+
+	//printf("rgb %x %x %x",*R,*G,*B);
 }
+
 
 //将采集好的数据放到文件中
 int process_image(void *addr,int length)
@@ -171,15 +185,36 @@ int process_image(void *addr,int length)
 	FILE *fp;
 	static int num = 0;
 	char picture_name[20];
-	sprintf(picture_name,"picture%d.jpg",num ++);
+	sprintf(picture_name,"picture%d.bmp",num ++);
 	if((fp = fopen(picture_name,"w")) == NULL){
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
 	}
-
-	yuyv2rgb(*addr,*(addr+1),*(addr+2));
+#define CHANGE_PIC_FORMAT  //转换图像格式YUYV RGB888
+#ifdef CHANGE_PIC_FORMAT
+	//每次读取4字节(2像素)的YUYV格式:Y0 U0 Y1 V0
+	//写入6字节(2像素) BGR BGR
+	u8 s[640*480*3]; int i;
+	//printf("size of head=%d",sizeof(head));//
+	write_file_head(&fp); //文件头
+	for(i=0;i<length;i=i+4){ //读取字节+4 byte
+		u8 y1,u,y2,v; //依次读取4字节/2像素
+		y1=addr+i+0;
+		u=addr+i+1;
+		y2=addr+i+2;
+		v=addr+i+3;
+		//第一个像素
+		yuyv2rgb(y1,u,v	,&s[i+0],&s[i+1],&s[i+2]);
+		//第二个像素
+		yuyv2rgb(y2,u,v	,&s[i+3],&s[i+4],&s[i+5]);
+	}
+	//写入两个像素
+	if(fwrite(s,6,1,fp)<=0){
+		perror("write data ");
+	}
+#else
 	fwrite(addr,length,1,fp);
-
+#endif
 	usleep(500);
 	fclose(fp);
 	return 0;
@@ -281,4 +316,45 @@ int main()
 	uninit_camer_device(fd);
 	close_camer_device(fd);
 	return 0;
+}
+void write_file_head(FILE**fp)
+{
+	struct bmp_file_head head;//文件头 14byte
+	head.bfType=0x424d;//BM 0~1
+	head.bfSize=640*480*3+14+40 ;//文件大小 //2~5
+	head.bfReserved1=0;  //6~7
+	head.bfReserved2=0; //8~9
+	head.bfOffBits=14+40;//偏置 10~13
+	struct bmp_info_head infohead; //位图头 40 byte
+	infohead.biSize=40; //14~17
+	infohead.biWidth=640;//18-21
+	infohead.biHeight=480;//22-25
+	infohead.biPlanes=1;//26-27
+	infohead.biBitCount=24;//28-29
+	infohead.biCompression=0;//30-33
+	infohead.biSizeImage=640*320*3;//34-37
+	infohead.biXPelsPerMerer=640;//38-41
+	infohead.biYPelsPerMerer=480;//42-45
+	infohead.biClrUsed=0;//46-49
+	infohead.biClrImportant=0;//50-53
+	//写入头文件,因为结构体会对齐,所以必须一个一个写
+	char j[2]={0x42,0x4d};
+	fwrite(j,2,1,*fp);
+	//fwrite(&head.bfType,2,1,*fp);
+	fwrite(&head.bfSize,sizeof(head.bfSize),1,*fp);
+	fwrite(&head.bfReserved1,sizeof(head.bfReserved1),1,*fp);
+	fwrite(&head.bfReserved2,sizeof(head.bfReserved2),1,*fp);
+	fwrite(&head.bfOffBits,sizeof(head.bfOffBits),1,*fp);
+	//写位图信息头
+	fwrite(&infohead.biSize,sizeof(infohead.biSize),1,*fp);
+	fwrite(&infohead.biWidth,sizeof(infohead.biWidth),1,*fp);
+	fwrite(&infohead.biHeight,sizeof(infohead.biHeight),1,*fp);
+	fwrite(&infohead.biPlanes,sizeof(infohead.biPlanes),1,*fp);
+	fwrite(&infohead.biBitCount,sizeof(infohead.biBitCount),1,*fp);
+	fwrite(&infohead.biCompression,sizeof(infohead.biCompression),1,*fp);
+	fwrite(&infohead.biSizeImage,sizeof(infohead.biSizeImage),1,*fp);
+	fwrite(&infohead.biXPelsPerMerer,sizeof(infohead.biXPelsPerMerer),1,*fp);
+	fwrite(&infohead.biYPelsPerMerer,sizeof(infohead.biYPelsPerMerer),1,*fp);
+	fwrite(&infohead.biClrUsed,sizeof(infohead.biClrUsed),1,*fp);
+	fwrite(&infohead.biClrImportant,sizeof(infohead.biClrImportant),1,*fp);
 }
