@@ -3,7 +3,7 @@
 */
 #include <stdio.h>
 #include "main.h"
-const int  width=4;//位图宽4字节的整数倍/不够补 00
+const int  width=3;//位图宽4字节的整数倍/不够补 00
 const int  hight=3;
 int main(void)
 {

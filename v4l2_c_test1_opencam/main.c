@@ -134,7 +134,7 @@ int init_camer_device(int fd)
 	stream_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
 	stream_fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
 	if(-1 == ioctl(fd,VIDIOC_S_FMT,&stream_fmt)){
-		perror("Fail to ioctl");
+		perror("Fail to ioctl:VIDIOC_S_FMT ");
 		exit(EXIT_FAILURE);
 	}
 	//初始化视频采集方式(mmap)
@@ -169,14 +169,29 @@ int start_capturing(int fd)
 }
 
 //
-void yuyv2rgb( u8 Y,u8 U,u8 V
-	       ,u8 *R,u8 *G ,u8 *B)
+void yuyv2rgb( int Y,int U,int V
+	       ,u8 *B,u8 *G ,u8 *R)
 {
 	//u8 r ,g,b;
-	*R = Y + 1.14*V;
-	*G = Y - 0.39*U - 0.58*V;
-	*B = Y + 2.03*U;
+	//	*R = Y + 1.14*(V-128);
+	//	*G = Y - 0.39*(U-128) - 0.58*(V-128);
+	//	*B = Y + 2.03*(U-128);
 
+	int r, g, b;
+
+	r = Y + (1.370705 * (V-128));
+	g = Y - (0.698001 * (V-128)) - (0.337633 * (U-128));
+	b = Y + (1.732446 * (U-128));
+
+	if(r > 255) r = 255;
+	if(g > 255) g = 255;
+	if(b > 255) b = 255;
+	if(r < 0) r = 0;
+	if(g < 0) g = 0;
+	if(b < 0) b = 0;
+	*R=r;
+	*G=g;
+	*B=b;
 	//printf("rgb %x %x %x",*R,*G,*B);
 }
 
@@ -201,31 +216,23 @@ int process_image(void *addr,int length)
 	//printf("size of head=%d",sizeof(head));//
 	write_file_head(&fp); //文件头
 
-	for(i=c_hight-1;i>=0;i++)
-		for(j=0;j<c_width;j++){
-			y1=add[i*c_width+j+0];
-			u=add[i*c_width+j+1];
-			y2=add[i*c_width+j+2];
-			v=add[i*c_width+j+3];
+	for(i=c_hight-1;i>=0;i--)
+		for(j=0;j<c_width*2;){
+
+			y1=*(int*)(addr+i*c_width*2+j+0);
+			u=*(int*)(addr+i*c_width*2+j+1);
+			y2=*(int*)(addr+i*c_width*2+j+2);
+			v=*(int*)(addr+i*c_width*2+j+3);
+			j+=4;
 			yuyv2rgb(y1,u,v	,&s[k+0],&s[k+1],&s[k+2]);
 			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
+			//			s[k+0]=0;s[k+1]=0;s[k+2]=0xff;
+			//			s[k+3]=0xff;s[k+4]=0;s[k+5]=0;
 			k+=6;
 		}
-	fwrite(s,length,1,fp);
-//	for(i=0;i<length;i=i+4){ //读取字节+4 byte
-//		y1=addr+i+0;
-//		u=addr+i+1;
-//		y2=addr+i+2;
-//		v=addr+i+3;
-//		//第一个像素
-//		yuyv2rgb(y1,u,v	,&s[i+0],&s[i+1],&s[i+2]);
-//		//第二个像素
-//		yuyv2rgb(y2,u,v	,&s[i+3],&s[i+4],&s[i+5]);
-//	}
-//	//写入两个像素
-//	if(fwrite(s,6,1,fp)<=0){
-//		perror("write data ");
-//	}
+	if(fwrite(s,sizeof(s),1,fp)<=0){
+		perror("write data ");
+	}
 #else
 	fwrite(addr,length,1,fp);
 #endif
@@ -259,7 +266,7 @@ int read_frame(int fd)
 //主循环
 int mainloop(int fd)
 {
-	int count = 10;
+	int count = 30;
 	while(count -- > 0){
 		for(;;){
 			fd_set fds;

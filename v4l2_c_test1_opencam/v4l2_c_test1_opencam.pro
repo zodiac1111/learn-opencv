@@ -3,13 +3,15 @@ CONFIG += console
 CONFIG -= qt
 QT       += core gui
 SOURCES += \
-	main.c
+	main.c \
+	image.c
 
 
 
 
 HEADERS += \
-    main.h
+    main.h \
+	image.h
 
 
 #设置库搜索目录
