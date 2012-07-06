@@ -173,25 +173,24 @@ void yuyv2rgb( int Y,int U,int V
 	       ,u8 *B,u8 *G ,u8 *R)
 {
 	//u8 r ,g,b;
-	//	*R = Y + 1.14*(V-128);
-	//	*G = Y - 0.39*(U-128) - 0.58*(V-128);
-	//	*B = Y + 2.03*(U-128);
+		*R = Y + 1.14*(V-128);
+		*G = Y - 0.39*(U-128) - 0.58*(V-128);
+		*B = Y + 2.03*(U-128);
+// other way yuv2rgb888 <backup>
+//	int r, g, b;
+//	r = Y + (1.370705 * (V-128));
+//	g = Y - (0.698001 * (V-128)) - (0.337633 * (U-128));
+//	b = Y + (1.732446 * (U-128));
 
-	int r, g, b;
-
-	r = Y + (1.370705 * (V-128));
-	g = Y - (0.698001 * (V-128)) - (0.337633 * (U-128));
-	b = Y + (1.732446 * (U-128));
-
-	if(r > 255) r = 255;
-	if(g > 255) g = 255;
-	if(b > 255) b = 255;
-	if(r < 0) r = 0;
-	if(g < 0) g = 0;
-	if(b < 0) b = 0;
-	*R=r;
-	*G=g;
-	*B=b;
+//	if(r > 255) r = 255;
+//	if(g > 255) g = 255;
+//	if(b > 255) b = 255;
+//	if(r < 0) r = 0;
+//	if(g < 0) g = 0;
+//	if(b < 0) b = 0;
+//	*R=r;
+//	*G=g;
+//	*B=b;
 	//printf("rgb %x %x %x",*R,*G,*B);
 }
 
@@ -216,8 +215,8 @@ int process_image(void *addr,int length)
 	//printf("size of head=%d",sizeof(head));//
 	write_file_head(&fp); //文件头
 
-	for(i=c_hight-1;i>=0;i--) //行 从最底行开始
-		for(j=0;j<c_width*2;){ //列 2byte/pix
+	for(i=c_hight-1;i>=0;i--) //行 从最 底行->顶行 bottom -> top
+		for(j=0;j<c_width*2;){ //列 2byte/pix lift -> right
 			y1=*(int*)(addr+i*c_width*2+j+0);
 			u=*(int*)(addr+i*c_width*2+j+1);
 			y2=*(int*)(addr+i*c_width*2+j+2);
