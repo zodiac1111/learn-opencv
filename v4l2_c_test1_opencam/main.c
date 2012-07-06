@@ -216,19 +216,16 @@ int process_image(void *addr,int length)
 	//printf("size of head=%d",sizeof(head));//
 	write_file_head(&fp); //文件头
 
-	for(i=c_hight-1;i>=0;i--)
-		for(j=0;j<c_width*2;){
-
+	for(i=c_hight-1;i>=0;i--) //行 从最底行开始
+		for(j=0;j<c_width*2;){ //列 2byte/pix
 			y1=*(int*)(addr+i*c_width*2+j+0);
 			u=*(int*)(addr+i*c_width*2+j+1);
 			y2=*(int*)(addr+i*c_width*2+j+2);
 			v=*(int*)(addr+i*c_width*2+j+3);
-			j+=4;
+			j+=4;//source :move to next 2 pixs (4byte)
 			yuyv2rgb(y1,u,v	,&s[k+0],&s[k+1],&s[k+2]);
 			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
-			//			s[k+0]=0;s[k+1]=0;s[k+2]=0xff;
-			//			s[k+3]=0xff;s[k+4]=0;s[k+5]=0;
-			k+=6;
+			k+=6;//detct :move to next 2 pixs (6byte)
 		}
 	if(fwrite(s,sizeof(s),1,fp)<=0){
 		perror("write data ");
