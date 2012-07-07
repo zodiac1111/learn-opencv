@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += console
+CONFIG += console125
 CONFIG -= qt
 
 SOURCES += \
@@ -7,5 +7,9 @@ SOURCES += \
 
 HEADERS += \
     main.h
-
-LIBS += -lx264
+LIBS += -L/usr/local/lib
+INCLUDEPATH += /usr/local/include/
+#x264 need these library
+LIBS += -lm \
+	-lpthread \
+	-lx264
