@@ -1,8 +1,11 @@
-//#include <iostream>
+/*
+  change form u8 array info to a jpg file
+  with libjepg library(share object libjepg.so).
+  */
 #include <stdio.h>
 #include <sys/types.h>
 #include <fcntl.h>
-#include <jpeglib.h>
+#include <jpeglib.h>//head file
 #include <errno.h>
 #include "main.h"
 GLOBAL(void)

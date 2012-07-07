@@ -1,5 +1,5 @@
 /*
-	由一系列图片创建视频
+	由一系列图片创建视频 use opencv lib
 	*/
 #include <opencv2/highgui/highgui_c.h>//包含opencv库头文件
 #include <opencv2/imgproc/imgproc_c.h>//图像处理 包括cvResize() 函数 同时链接库lopencv_imgproc
