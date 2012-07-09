@@ -1,9 +1,9 @@
 /*
-  手动生成一幅2*2大小 rgb24 3byte per pix(BGR)格式的位图文件.
+  手动生成一幅width*hight大小 rgb24 3byte per pix(BGR)格式的位图文件.
 */
 #include <stdio.h>
 #include "main.h"
-const int  width=3;//位图宽4字节的整数倍/不够补 00
+const int  width=4;//位图宽4字节的整数倍/不够补 00
 const int  hight=3;
 int main(void)
 {
@@ -14,40 +14,39 @@ int main(void)
 		exit(1);
 	}
 	write_file_head(&fp); //文件头
-	//位图: 2*2 rgb24/888
-	// 蓝|绿
-	// 红|白
-	//数据域顺序 从左到右 从上到下 ,先底行,至顶行
-	char color[]={0xff, 0xff, 0xff//白 最低行
-		      ,0x00, 0x00, 0x00//黑
-		      ,0xff, 0xff, 0xff
-		      ,0x00, 0x00, 0x00
-		      //,0x00,0x00 //四字节对齐
+	//数据域顺序 ,先底行,至顶行;行内从左到右
+	char color[]={//第 2 行
+			0xff, 0xff, 0xff//白 最低行
+		      //B  ,  G  ,  R
+		      ,0x00, 0x00, 0xFF//红
+		      ,0x00, 0xff, 0x00 //绿
+		      ,0xFF, 0x00, 0x00 //蓝 //这样一行共12字节
+		      //,0x00,... //一行不四字节对齐,则补齐
+		      //第 1 行
 		      ,0xff,0x00,0x00//蓝
 		      ,0x00,0xff,0x00 //绿
 		      ,0xff,0x00,0x00//蓝
 		      ,0x00,0xff,0x00 //绿
-		      //,0x00,0x00 //每行四字节对其
+		      //第 0 行
 		      ,0x00, 0x00, 0xFF//红
 		      ,0xFF, 0xFF, 0xFF//白
 		      ,0x00, 0x00, 0xFF//红
 		      ,0xFF, 0xFF, 0xFF//白
-		      //,0x00,0x00 //四字节对齐 最高行
 		     };
 	int r;
-	r=fwrite(color,sizeof(color),1,fp);
+	r=fwrite(color,sizeof(color),1,fp);//写入文件的数据区
 	if(r<=0){
 		perror("Fail to write color data");
 		exit(2);
 	}
-
 	fclose(fp);
 	printf("Hello World!\n");
 	return 0;
 }
+
 /*
 	bmp位图文件 文件头 参见:维基百科
-	http://en.wikipedia.org/wiki/BMP_file_format
+	https://en.wikipedia.org/wiki/BMP_file_format
 */
 void write_file_head(FILE**fp)
 {
@@ -70,7 +69,6 @@ void write_file_head(FILE**fp)
 	infohead.biYPelsPerMerer=hight;//42-45
 	infohead.biClrUsed=0;//46-49
 	infohead.biClrImportant=0;//50-53
-
 	//写入头文件
 	fwrite(MagicNumber_hex,2,1,*fp);  //magic number
 	fwrite(&head,sizeof(head),1,*fp); //file head

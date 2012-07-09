@@ -15,19 +15,20 @@ typedef unsigned char u8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 //0~1 字节 幻数
-u8 MagicNumber_ascii[2]={'B','M'};
-u8 MagicNumber_hex[2]={0x42,0x4d};
+u8 MagicNumber_ascii[2]={'B','M'}; //0~1
+u8 MagicNumber_hex[2]={0x42,0x4d};  //0~1
 
 struct bmp_file_head
- { //一共12byte
-  //     u16	bfType; //0~1
-       u32	bfSize;//2~5
-       u16	bfReserved1;//6~7
-       u16	bfReserved2;//8~9
-       u32	bfOffBits;//10~13
- };
+{ //一共12byte
+	//     u16	bfType; //0~1
+	u32	bfSize;//2~5
+	u16	bfReserved1;//6~7
+	u16	bfReserved2;//8~9
+	u32	bfOffBits;//10~13
+	//__attribute__ ((packed))取消字节对齐优化,文件头需要严格安顺序排列.我自己来
+}__attribute__ ((packed));
 struct bmp_info_head
-  {
+{
 	u32	biSize;//14~17
 	u32	biWidth;//18~21
 	u32	biHeight;//22~25
@@ -39,6 +40,6 @@ struct bmp_info_head
 	u32	biYPelsPerMerer; //42 ~45
 	u32	biClrUsed; //46 ~49
 	u32	biClrImportant; //50~53
-  };
+}__attribute__ ((packed));
 void write_file_head(FILE**fp);
 #endif // MAIN_H
