@@ -1,5 +1,8 @@
 /*
-  -lx264
+	简单从图片编码成h264格式文件 通过x264
+	-lx264
+	参考:
+	1. http://stackoverflow.com/questions/2940671/how-does-one-encode-a-series-of-images-into-h264-using-the-x264-c-api
   */
 #include <stdint.h>
 #include <x264.h>
@@ -142,14 +145,11 @@ int main()
 	int i_nals;
 	int frame_size =0;
 	frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
-	{
-	int iFrames = x264_encoder_delayed_frames(encoder);
-	printf("当前编码器中缓存数据:%d帧\n",iFrames);
-	}
+
 	printf("frame_size  is %d\n ",frame_size);
 	if (frame_size < 0){// OK
 		perror("Encoder Encode Failed\n");
-
+		exit(103);
 	}else{
 		printf("after encode pic %X%X%X%X %X%X%X%X\n",
 		       pic_out.img.plane[0][0],
@@ -177,7 +177,10 @@ int main()
 
 	}
 
-
+	{//读取buffer
+	int iFrames = x264_encoder_delayed_frames(encoder);
+	printf("当前编码器中缓存数据:%d帧\n",iFrames);
+	}
 	//At last over encode close the encoder
 	x264_encoder_close(encoder);
 	return 0;
