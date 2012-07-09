@@ -3,6 +3,7 @@
 	-lx264
 	参考:
 	1. http://stackoverflow.com/questions/2940671/how-does-one-encode-a-series-of-images-into-h264-using-the-x264-c-api
+	2. http://zyg0227.blog.51cto.com/1043164/295479 (i420 vs yv12)
   */
 #include <stdint.h>
 #include <x264.h>
@@ -41,6 +42,8 @@ int getsrcdata(char *yuv422)
 	because it seem that x264 need the frame pic format
 	is yuv420p. and the webcam get data format is yuyv
 	equ YUV422
+	NOTE:	i420 = yyyy+vv+uu
+		yv12/yuv420 = yyyy+uu+vv
 */
 int yuv422Toyuv420p(const unsigned char* yuv422,unsigned char *yuv420p
 		    , int width,int hight)
@@ -48,8 +51,9 @@ int yuv422Toyuv420p(const unsigned char* yuv422,unsigned char *yuv420p
 	//yuv420p has  SIX byte per FOUR pixels : 6/4
 	// & At least 4 pixels per frame
 	//unsigned char yuv420p[width*hight*6/4];
-	int i=0,y=0,u=0,v=0;
+
 	int srclen=width*hight*4/2;
+	int i=0,y=0,v=width*hight,u=width*hight+width*hight/4;
 	for (i=0;i<srclen;i++){
 		if((i%4==0) || (i%4==2) ){
 			yuv420p[y++]=yuv422[i];
@@ -71,7 +75,7 @@ int main()
 {
 	unsigned char yuv422[640*480*4/2];
 	if(getsrcdata(yuv422)==0){
-		printf("src data first 8 byte %X%X%X%X %X%X%X%X\n"
+		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
 		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
 		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
 		fflush(stdout);
@@ -110,7 +114,7 @@ int main()
 	}
 	x264_picture_t pic_in, pic_out;
 	//分配输入输出两张图片的内存。 ?
-	if (x264_picture_alloc(&pic_in, X264_CSP_YV16, width, height)!=0){
+	if (x264_picture_alloc(&pic_in, X264_CSP_I420, width, height)!=0){
 		perror("x264_picture_alloc");
 		exit(5);
 	}
@@ -129,14 +133,14 @@ int main()
 	*/
 	//x264_picture_init(&pic_out);
 	//x264_picture_init(&pic_in); //初始化图片，必须的！！
-	pic_in.img.i_csp=X264_CSP_YV16;
+	pic_in.img.i_csp=X264_CSP_I420;
 	pic_in.img.i_plane=3;
 	pic_in.img.plane[0]=yuv420p;
 	pic_in.img.plane[1]=yuv420p+640*480;
 	pic_in.img.plane[2]=yuv420p+640*480+640*480/4;
-	pic_in.img.i_stride[0]=640*3;
-	pic_in.img.i_stride[1]=640*3;
-	pic_in.img.i_stride[2]=641*3;
+	pic_in.img.i_stride[0]=640;
+	pic_in.img.i_stride[1]=320;
+//	pic_in.img.i_stride[2]=0;
 
 
 	x264_nal_t a;
@@ -151,7 +155,7 @@ int main()
 		perror("Encoder Encode Failed\n");
 		exit(103);
 	}else{
-		printf("after encode pic %X%X%X%X %X%X%X%X\n",
+		printf("after encode pic %X%X %X%X %X%X %X%X\n",
 		       pic_out.img.plane[0][0],
 		       pic_out.img.plane[0][1],
 		       pic_out.img.plane[0][2],
