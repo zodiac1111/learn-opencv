@@ -1,7 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include <stdio.h>
-#include<linux/videodev2.h> //v4l2
+//#include <linux/videodev2.h> //v4l2
 #include <sys/types.h>
 #include <fcntl.h> //file ctrl
 #include <sys/ioctl.h>

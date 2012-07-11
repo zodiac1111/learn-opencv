@@ -3,7 +3,7 @@
 */
 #include <stdio.h>
 #include "main.h"
-const int  width=4;//位图宽4字节的整数倍/不够补 00
+const int  width=4;
 const int  hight=3;
 int main(void)
 {
@@ -14,7 +14,7 @@ int main(void)
 		exit(1);
 	}
 	write_file_head(&fp); //文件头
-	//数据域顺序 ,先底行,至顶行;行内从左到右
+	//数据域顺序 ,先底行,至顶行;行内从左到右;像素内BGR排列
 	char color[]={//第 2 行
 			0xff, 0xff, 0xff//白 最低行
 		      //B  ,  G  ,  R
@@ -40,7 +40,7 @@ int main(void)
 		exit(2);
 	}
 	fclose(fp);
-	printf("Hello World!\n");
+	printf(":)\n");
 	return 0;
 }
 

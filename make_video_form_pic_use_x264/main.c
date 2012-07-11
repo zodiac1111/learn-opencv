@@ -11,22 +11,25 @@
 #include <errno.h>
 #include <x264_config.h>
 #include "main.h"
+#define FRAME_NUM (10)
 //parament
+#define W 640
+#define  H 480
 int width=640;
 int  height=480;
 uint32_t fps=10;
 //数据原，yuyv yuv422 [4bytes per 2 pixels]
 
 // get YUV422 data from datafile to a char*  array
-int getsrcdata(char *yuv422)
+int getsrcdata(const char *filename ,char *yuv422)
 {
 	//get yuv422data.
 	int fd;
-	if((fd = fopen("test-YUYV-YUV422.raw","r")) < 0){
+	if((fd = fopen(filename,"r")) < 0){
 		perror("Fail to open");
 		exit(1);
 	}
-	if(fread(yuv422,640*480*2,1,fd)<=0){
+	if(fread(yuv422,640*480*2*FRAME_NUM,1,fd)<=0){
 		perror("Fail to read yuv422file");
 		exit(2);
 	}
@@ -73,19 +76,23 @@ int yuv422Toyuv420p(const unsigned char* yuv422,unsigned char *yuv420p
 
 int main()
 {
-	unsigned char yuv422[640*480*4/2];
-	if(getsrcdata(yuv422)==0){
-		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
-		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
-		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
-		fflush(stdout);
-	}else{
-		perror("read src date err");
-		exit(4);
-	}
 
-	unsigned char yuv420p[648*480*6/4];
-	yuv422Toyuv420p(yuv422,yuv420p,640,480);
+	unsigned char yuv422[640*480*4/2*FRAME_NUM];
+	getsrcdata("src.raw",yuv422);
+
+//	unsigned char yuv422[640*480*4/2];
+//	if(getsrcdata("test-YUYV-YUV422.raw",yuv422)==0){
+//		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
+//		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
+//		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
+//		fflush(stdout);
+//	}else{
+//		perror("read src date err");
+//		exit(4);
+//	}
+
+//	unsigned char yuv420p[648*480*6/4];
+//	yuv422Toyuv420p(yuv422,yuv420p,640,480);
 
 	x264_param_t param;
 	//set default param
@@ -114,7 +121,7 @@ int main()
 	}
 	x264_picture_t pic_in, pic_out;
 	//分配输入输出两张图片的内存。 ?
-	if (x264_picture_alloc(&pic_in, X264_CSP_I420, width, height)!=0){
+	if (x264_picture_alloc(&pic_in, X264_CSP_I422, width, height)!=0){
 		perror("x264_picture_alloc");
 		exit(5);
 	}
@@ -132,24 +139,30 @@ int main()
 				       SWS_FAST_BILINEAR, NULL, NULL, NULL);
 	*/
 	//x264_picture_init(&pic_out);
-	//x264_picture_init(&pic_in); //初始化图片，必须的！！
-	pic_in.img.i_csp=X264_CSP_I420;
-	pic_in.img.i_plane=3;
-	pic_in.img.plane[0]=yuv420p;
-	pic_in.img.plane[1]=yuv420p+640*480;
-	pic_in.img.plane[2]=yuv420p+640*480+640*480/4;
-	pic_in.img.i_stride[0]=640;
-	pic_in.img.i_stride[1]=320;
-//	pic_in.img.i_stride[2]=0;
+	//x264_picture_init(&pic_in); //初始化图片，必须的?包含在x264_picture_alloc里
 
+	//	pic_in.img.i_csp=X264_CSP_I420;
+	//	pic_in.img.i_plane=3;
+		pic_in.img.plane[0]=yuv422;
+	//	pic_in.img.plane[1]=yuv422+1;
+	//	pic_in.img.plane[2]=yuv422+2;
+	//	pic_in.img.plane[3]=NULL;
+	//	pic_in.i_type=X264_TYPE_AUTO;
+	//	pic_in.img.i_stride[0]=640*480;
+	//	pic_in.img.i_stride[1]=640*480/4;
+	//	pic_in.img.i_stride[2]=640*480/4;
 
 	x264_nal_t a;
 	x264_nal_t* nals=&a;
 
 	int i_nals;
 	int frame_size =0;
-	frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
-
+	int j;
+		frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
+		if (!i_nals) {
+			//*buffersize=0;
+			return 1;
+		}
 	printf("frame_size  is %d\n ",frame_size);
 	if (frame_size < 0){// OK
 		perror("Encoder Encode Failed\n");
@@ -182,10 +195,12 @@ int main()
 	}
 
 	{//读取buffer
-	int iFrames = x264_encoder_delayed_frames(encoder);
-	printf("当前编码器中缓存数据:%d帧\n",iFrames);
+		int iFrames = x264_encoder_delayed_frames(encoder);
+		printf("当前编码器中缓存数据:%d帧\n",iFrames);
 	}
 	//At last over encode close the encoder
+	printf("********close the encoder:********\n");
+	fflush(stdout);
 	x264_encoder_close(encoder);
 	return 0;
 }

@@ -204,9 +204,9 @@ int process_image(void *addr,int length)
 	FILE *fp;
 	static int num = 0;
 	char picture_name[20];
-	sprintf(picture_name,"picture%d.jpg",num ++);
+	sprintf(picture_name,"picture%d.jpg",num++);
 
-#define  YUYV_2_JPG_FILE
+//#define  YUYV_2_JPG_FILE
 #ifdef YUYV_2_JPG_FILE
 	u8 s[640*480*3]; int i=0;int j=0;int k=0;
 	u8 y1,u,y2,v; //依次读取4字节/2像素
@@ -237,11 +237,11 @@ int process_image(void *addr,int length)
 	usleep(500);
 
 #else
-	if((fp = fopen(picture_name,"w")) == NULL){
+	if((fp = fopen(picture_name,"aw")) == NULL){
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
 	}
-#define CHANGE_PIC_FORMAT  //转换图像格式YUYV RGB888
+//#define CHANGE_PIC_FORMAT  //转换图像格式YUYV RGB888
 #ifdef CHANGE_PIC_FORMAT
 	//每次读取4字节(2像素)的YUYV格式:Y0 U0 Y1 V0
 	//写入6字节(2像素) BGR BGR

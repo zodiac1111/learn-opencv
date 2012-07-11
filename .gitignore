@@ -9,7 +9,8 @@
 *.jpeg
 *.raw
 *.mp4
-
+*.none
+*.nona
 #qt项目配置文件
 *.user
 
