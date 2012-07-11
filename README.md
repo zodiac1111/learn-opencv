@@ -10,7 +10,7 @@ pdf是官方文档.
 * YUYV-(change)->YUV420p (for encode ?)
 * YUV file(many pic in one file) -> .264/ .mp4 FILE(not data stream) with **(x264 command line)**
 * TODO:YUV->H264(use c lang)
-* TODO:H264/frame->rtsp包?
+* TODO:H264/<del>frame</del> slice -><del>rtsp包?</del> NAL(U)
 * TODO:rtsp/rtp/rtcp+ UDP/TCP 服务器.
 * rtsp->opencv->简单图像处理(半成)
 * TODO:图像处理.
