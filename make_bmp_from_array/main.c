@@ -1,5 +1,6 @@
 /*
   手动生成一幅width*hight大小 rgb24 3byte per pix(BGR)格式的位图文件.
+  从 unsigned char 数组的数据 RAW RGB888/24
 */
 #include <stdio.h>
 #include "main.h"
