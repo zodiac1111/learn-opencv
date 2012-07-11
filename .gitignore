@@ -11,6 +11,11 @@
 *.mp4
 *.none
 *.nona
+*.webm
+*.bmp
+*.png
+.*
+
 #qt项目配置文件
 *.user
 
@@ -35,7 +40,7 @@
 *.rar
 *.tar
 *.zip
-
+!.gitignore
 # Logs and databases #
 ######################
 *.log
