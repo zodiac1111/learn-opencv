@@ -12,6 +12,8 @@
 *.264
 *.nane
 *.none
+*.webm
+make_video_form_pic_use_x264
 
 #qt项目配置文件
 *.user
