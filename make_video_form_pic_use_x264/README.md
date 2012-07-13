@@ -12,3 +12,16 @@
 	--nal-hrd vbr \		#网络层? 暂时没弄懂
        	--seek 147 \		#指定从输入文件的第147帧开始编码.
 ```
+
+```
+264 ./in-i420-yuv420p.raw\
+	--input-res 640x480 \
+	--fps 25 \
+	-o ./out2.mp4 \
+	--log-level debug \
+	--nal-hrd vbr \
+	--seek 448 	\
+	resize:width=320,height=240 \
+	--verbose \
+	--dump-yuv ./dump-yuv.raw	#Dumps(转存) the reconstructed YUV frames to the specified file. Useful mostly for debugging. Not for general use
+```

@@ -149,9 +149,9 @@ int start_capturing(int fd)
 {
 	unsigned int i;
 	enum v4l2_buf_type type;
+	struct v4l2_buffer buf;
 	//将申请的内核缓冲区放入一个队列中
 	for(i = 0;i < n_buffer;i ++){
-		struct v4l2_buffer buf;
 		bzero(&buf,sizeof(buf));
 		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory = V4L2_MEMORY_MMAP;

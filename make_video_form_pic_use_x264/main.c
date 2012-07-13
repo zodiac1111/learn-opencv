@@ -9,6 +9,7 @@
 #include <x264.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 #include <x264_config.h>
 #include "main.h"
 #define FRAME_NUM (10)
@@ -37,6 +38,9 @@ int getsrcdata(const char *filename ,char *yuv422)
 		perror("Fail to close yuv422file");
 		exit(3);
 	}
+	printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
+	       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
+	       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
 	return 0;
 }
 /*	transfrom yuv422 to yuv420p
@@ -78,21 +82,21 @@ int main()
 {
 
 	unsigned char yuv422[640*480*4/2*FRAME_NUM];
-	getsrcdata("src.raw",yuv422);
+	getsrcdata("in-i422-yuv422p.raw",yuv422);
 
-//	unsigned char yuv422[640*480*4/2];
-//	if(getsrcdata("test-YUYV-YUV422.raw",yuv422)==0){
-//		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
-//		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
-//		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
-//		fflush(stdout);
-//	}else{
-//		perror("read src date err");
-//		exit(4);
-//	}
+	//	unsigned char yuv422[640*480*4/2];
+	//	if(getsrcdata("test-YUYV-YUV422.raw",yuv422)==0){
+	//		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
+	//		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
+	//		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
+	//		fflush(stdout);
+	//	}else{
+	//		perror("read src date err");
+	//		exit(4);
+	//	}
 
-//	unsigned char yuv420p[648*480*6/4];
-//	yuv422Toyuv420p(yuv422,yuv420p,640,480);
+	//	unsigned char yuv420p[648*480*6/4];
+	//	yuv422Toyuv420p(yuv422,yuv420p,640,480);
 
 	x264_param_t param;
 	//set default param
@@ -110,17 +114,18 @@ int main()
 	param.rc.f_rf_constant = 25;
 	param.rc.f_rf_constant_max = 35;
 	//For streaming:
+
 	param.b_repeat_headers = 1;
 	param.b_annexb = 1;
 	x264_param_apply_profile(&param, "baseline");//apply set
 	//After this you can initialize the encoder as follows
-	x264_t* encoder = x264_encoder_open(&param);
+	x264_t* encoder = x264_encoder_open(&param); //打开编码器
 	if(encoder==NULL){
 		perror("open encder");
 		exit(101);
 	}
 	x264_picture_t pic_in, pic_out;
-	//分配输入输出两张图片的内存。 ?
+	//分配输入输出两张图片的内存。
 	if (x264_picture_alloc(&pic_in, X264_CSP_I422, width, height)!=0){
 		perror("x264_picture_alloc");
 		exit(5);
@@ -143,7 +148,8 @@ int main()
 
 	//	pic_in.img.i_csp=X264_CSP_I420;
 	//	pic_in.img.i_plane=3;
-		pic_in.img.plane[0]=yuv422;
+	//	pic_in.img.plane[0]=yuv422;
+	//memcpy(pic_in.img.plane[0],yuv422,pic_in.img.i_stride[0]);
 	//	pic_in.img.plane[1]=yuv422+1;
 	//	pic_in.img.plane[2]=yuv422+2;
 	//	pic_in.img.plane[3]=NULL;
@@ -153,51 +159,58 @@ int main()
 	//	pic_in.img.i_stride[2]=640*480/4;
 
 	x264_nal_t a;
-	x264_nal_t* nals=&a;
+	x264_nal_t* nals;//=&a;
 
 	int i_nals;
 	int frame_size =0;
-	int j;
+	int j;int i;uint8_t outCanUse;
+	for(j=0;j<FRAME_NUM;j++){
 		frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
 		if (!i_nals) {
 			//*buffersize=0;
 			return 1;
 		}
+//		for(i=0;i<i_nals;i++){
+			x264_nal_encode(encoder,&outCanUse,nals);
+//		}
+	}
 	printf("frame_size  is %d\n ",frame_size);
 	if (frame_size < 0){// OK
 		perror("Encoder Encode Failed\n");
 		exit(103);
-	}else{
-		printf("after encode pic %X%X %X%X %X%X %X%X\n",
-		       pic_out.img.plane[0][0],
-		       pic_out.img.plane[0][1],
-		       pic_out.img.plane[0][2],
-		       pic_out.img.plane[0][3],
-		       pic_out.img.plane[0][4],
-		       pic_out.img.plane[0][5],
-		       pic_out.img.plane[0][6],
-		       pic_out.img.plane[0][7]);
-		fflush(stdout);
-		int fd;
-		if((fd = fopen("test-YUYV-YUV422-changed.raw","w")) < 0){
-			perror("Fail to open changed file");
-			exit(1);
-		}
-		if(fwrite(pic_out.img.plane[0],640*480*2,1,fd)<=0){
-			perror("Fail to write farme file");
-			exit(2);
-		}
-		if(fclose(fd)!=0){
-			perror("Fail to close farme file");
-			exit(3);
-		}
-
 	}
 
-	{//读取buffer
-		int iFrames = x264_encoder_delayed_frames(encoder);
-		printf("当前编码器中缓存数据:%d帧\n",iFrames);
+	printf("after encode pic %02X%02X %02X%02X %02X%02X %02X%02X\n",
+	       pic_out.img.plane[0][0],
+	       pic_out.img.plane[0][1],
+	       pic_out.img.plane[0][2],
+	       pic_out.img.plane[0][3],
+	       pic_out.img.plane[0][4],
+	       pic_out.img.plane[0][5],
+	       pic_out.img.plane[0][6],
+	       pic_out.img.plane[0][7]);
+	fflush(stdout);
+	//保存?
+	int fd;
+	if((fd = fopen("test-YUYV-YUV422-changed.raw","w")) < 0){
+		perror("Fail to open changed file");
+		exit(1);
 	}
+	if(fwrite(pic_out.img.plane[0],640*480*2,1,fd)<=0){
+		perror("Fail to write farme file");
+		exit(2);
+	}
+	if(fclose(fd)!=0){
+		perror("Fail to close farme file");
+		exit(3);
+	}
+
+	//读取buffer
+	int iFrames = x264_encoder_delayed_frames(encoder);
+	printf("当前编码器中缓存数据:%d帧\n",iFrames);
+
+	x264_picture_clean(&pic_in);
+	//x264_picture_clean(&pic_out);
 	//At last over encode close the encoder
 	printf("********close the encoder:********\n");
 	fflush(stdout);
