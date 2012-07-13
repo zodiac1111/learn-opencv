@@ -4,6 +4,7 @@
 	参考:
 	1. http://stackoverflow.com/questions/2940671/how-does-one-encode-a-series-of-images-into-h264-using-the-x264-c-api
 	2. http://zyg0227.blog.51cto.com/1043164/295479 (i420 vs yv12)
+	3. RFC 3550		RFC 3984
   */
 #include <stdint.h>
 #include <x264.h>

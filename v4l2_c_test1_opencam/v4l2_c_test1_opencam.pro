@@ -5,7 +5,8 @@ CONFIG -= qt
 SOURCES += \
 	main.c \
 	image.c \
-    jpg.c
+    jpg.c \
+    bmp.c
 
 
 
@@ -13,7 +14,9 @@ SOURCES += \
 HEADERS += \
     main.h \
 	image.h \
-    jpg.h
+    jpg.h \
+    bmp.h \
+    type.h
 
 
 #设置库搜索目录

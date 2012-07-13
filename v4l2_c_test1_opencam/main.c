@@ -176,24 +176,24 @@ void yuyv2rgb( int Y,int U,int V
 	       ,u8 *R,u8 *G ,u8 *B)
 {
 	//u8 r ,g,b;
-		*R = Y + 1.14*(V-128);
-		*G = Y - 0.39*(U-128) - 0.58*(V-128);
-		*B = Y + 2.03*(U-128);
-// other way yuv2rgb888 <backup>
-//	int r, g, b;
-//	r = Y + (1.370705 * (V-128));
-//	g = Y - (0.698001 * (V-128)) - (0.337633 * (U-128));
-//	b = Y + (1.732446 * (U-128));
+	*R = Y + 1.14*(V-128);
+	*G = Y - 0.39*(U-128) - 0.58*(V-128);
+	*B = Y + 2.03*(U-128);
+	// other way yuv2rgb888 <backup>
+	//	int r, g, b;
+	//	r = Y + (1.370705 * (V-128));
+	//	g = Y - (0.698001 * (V-128)) - (0.337633 * (U-128));
+	//	b = Y + (1.732446 * (U-128));
 
-//	if(r > 255) r = 255;
-//	if(g > 255) g = 255;
-//	if(b > 255) b = 255;
-//	if(r < 0) r = 0;
-//	if(g < 0) g = 0;
-//	if(b < 0) b = 0;
-//	*R=r;
-//	*G=g;
-//	*B=b;
+	//	if(r > 255) r = 255;
+	//	if(g > 255) g = 255;
+	//	if(b > 255) b = 255;
+	//	if(r < 0) r = 0;
+	//	if(g < 0) g = 0;
+	//	if(b < 0) b = 0;
+	//	*R=r;
+	//	*G=g;
+	//	*B=b;
 	//printf("rgb %x %x %x",*R,*G,*B);
 }
 
@@ -204,10 +204,11 @@ int process_image(void *addr,int length)
 	FILE *fp;
 	static int num = 0;
 	char picture_name[20];
-	sprintf(picture_name,"picture%d.jpg",num++);
 
-//#define  YUYV_2_JPG_FILE
+
+	//#define  YUYV_2_JPG_FILE
 #ifdef YUYV_2_JPG_FILE
+	sprintf(picture_name,"picture%d.jpg",num++);
 	u8 s[640*480*3]; int i=0;int j=0;int k=0;
 	u8 y1,u,y2,v; //依次读取4字节/2像素
 	for(i=0;i<c_hight;i++) //行
@@ -221,34 +222,35 @@ int process_image(void *addr,int length)
 			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
 			k+=6;//detct :move to next 2 pixels (6byte)
 		}
-//	char *d[c_width*c_hight*3];
-//	int i=0;int j=0;
-//	//YUYV ->YUV YUV(yuv422)
-//	for(i=0;i<length;i+=4,j+=6){
-//		d[j+0]=*((char *)addr+i+0); //Y1
-//		d[j+1]=*((char *)addr+i+1); //U1
-//		d[j+2]=*((char *)addr+i+3); //V1
-//		d[j+3]=*((char *)addr+i+2); //Y2
-//		d[j+4]=*((char *)addr+i+1); //U1
-//		d[j+5]=*((char *)addr+i+3); //V1
-//	}
+	//	char *d[c_width*c_hight*3];
+	//	int i=0;int j=0;
+	//	//YUYV ->YUV YUV(yuv422)
+	//	for(i=0;i<length;i+=4,j+=6){
+	//		d[j+0]=*((char *)addr+i+0); //Y1
+	//		d[j+1]=*((char *)addr+i+1); //U1
+	//		d[j+2]=*((char *)addr+i+3); //V1
+	//		d[j+3]=*((char *)addr+i+2); //Y2
+	//		d[j+4]=*((char *)addr+i+1); //U1
+	//		d[j+5]=*((char *)addr+i+3); //V1
+	//	}
 	//数据格式RGB24
 	write_JPEG_file(s,c_width,c_hight,picture_name,100);
 	usleep(500);
 
 #else
+	sprintf(picture_name,"picture%d.bmp",num++);
 	if((fp = fopen(picture_name,"aw")) == NULL){
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
 	}
-//#define CHANGE_PIC_FORMAT  //转换图像格式YUYV RGB888
-#ifdef CHANGE_PIC_FORMAT
+#define CHANGE_PIC_FORMAT_TO_BMP  //转换图像格式YUYV RGB888
+#ifdef CHANGE_PIC_FORMAT_TO_BMP
 	//每次读取4字节(2像素)的YUYV格式:Y0 U0 Y1 V0
 	//写入6字节(2像素) BGR BGR
 	u8 s[640*480*3]; int i=0;int j=0;int k=0;
 	u8 y1,u,y2,v; //依次读取4字节/2像素
 	//printf("size of head=%d",sizeof(head));//
-	write_file_head(&fp); //文件头
+	write_file_head(&fp,c_width,c_hight); //文件头
 
 	for(i=c_hight-1;i>=0;i--) //行 从最 底行->顶行 *** bottom -> top
 		for(j=0;j<c_width*2;){ //列 2byte/pix lift -> right
@@ -257,8 +259,9 @@ int process_image(void *addr,int length)
 			y2=*(int*)(addr+i*c_width*2+j+2);
 			v=*(int*)(addr+i*c_width*2+j+3);
 			j+=4;//source :move to next 2 pixs (4byte)
-			yuyv2rgb(y1,u,v	,&s[k+0],&s[k+1],&s[k+2]);
-			yuyv2rgb(y1,u,v	,&s[k+3],&s[k+4],&s[k+5]);
+			//RGB->BGR(windows bmp file format!)
+			yuyv2rgb(y1,u,v	,&s[k+2],&s[k+1],&s[k+0]);
+			yuyv2rgb(y1,u,v	,&s[k+5],&s[k+4],&s[k+3]);
 			k+=6;//detct :move to next 2 pixs (6byte)
 		}
 	if(fwrite(s,sizeof(s),1,fp)<=0){
@@ -278,7 +281,7 @@ int read_frame(int fd)
 {
 
 	struct v4l2_buffer buf;
-	unsigned int i;
+	//	unsigned int i;
 	bzero(&buf,sizeof(buf));
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
@@ -300,7 +303,7 @@ int read_frame(int fd)
 int mainloop(int fd)
 {
 	int count = 30;
-	while(count -- > 0){
+	while(count-- > 0){
 		for(;;){
 			fd_set fds;
 			struct timeval tv;
@@ -339,9 +342,12 @@ void stop_capturing(int fd)
 	return;
 }
 
+/*
+  设备初始化
+*/
 void uninit_camer_device()
 {
-	unsigned int i;
+	int i;
 	for(i = 0;i < n_buffer;i ++){
 		if(-1 == munmap(user_buf[i].start,user_buf[i].length)){
 			exit(EXIT_FAILURE);
@@ -373,35 +379,4 @@ int main()
 	return 0;
 }
 
-/*
-	bmp位图文件 文件头 参见:维基百科
-	http://en.wikipedia.org/wiki/BMP_file_format
-*/
-void write_file_head(FILE**fp)
-{
-	const int  width=c_width;//位图宽4字节的整数倍/不够补 00
-	const int  hight=c_hight;
-	struct bmp_file_head head;//文件头 14byte
-	struct bmp_info_head infohead; //位图头 40 byte
-	//Magic number 0~1
-	head.bfSize=width*hight*3+14+40 ;//文件大小 //2~5
-	head.bfReserved1=0;  //6~7
-	head.bfReserved2=0; //8~9
-	head.bfOffBits=2+12+40;//偏置 10~13
-	//bmp file info head
-	infohead.biSize=40; //14~17
-	infohead.biWidth=width;//18-21
-	infohead.biHeight=hight;//22-25
-	infohead.biPlanes=1;//26-27
-	infohead.biBitCount=24;//28-29
-	infohead.biCompression=0;//30-33
-	infohead.biSizeImage=width*hight*3;//34-37
-	infohead.biXPelsPerMerer=width;//38-41
-	infohead.biYPelsPerMerer=hight;//42-45
-	infohead.biClrUsed=0;//46-49
-	infohead.biClrImportant=0;//50-53
-	//write to file
-	fwrite(MagicNumber_hex,2,1,*fp);  //magic number
-	fwrite(&head,sizeof(head),1,*fp); //file head
-	fwrite(&infohead,sizeof(infohead),1,*fp); //bmp info head
-}
+
