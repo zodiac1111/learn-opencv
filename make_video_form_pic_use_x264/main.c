@@ -5,6 +5,8 @@
 	1. http://stackoverflow.com/questions/2940671/how-does-one-encode-a-series-of-images-into-h264-using-the-x264-c-api
 	2. http://zyg0227.blog.51cto.com/1043164/295479 (i420 vs yv12)
 	3. RFC 3550		RFC 3984
+	V0.01	多帧编码(误)
+	by zodiac1111 @20120713
   */
 #include <stdint.h>
 #include <x264.h>
@@ -13,8 +15,8 @@
 #include <string.h>
 #include <x264_config.h>
 #include "main.h"
-#define FRAME_NUM (100)
-#define MAX_RTP_PARK_SIZE 1442 //网络分包
+#define FRAME_NUM (100) //编码帧数
+#define MAX_RTP_PARK_SIZE (1442) //最大网络分包大小 bytes
 //parament
 #define W 640
 #define  H 480
@@ -27,12 +29,12 @@ uint32_t fps=10;
 int getsrcdata(const char *filename ,char *yuv422)
 {
 	//get yuv422data.
-	int fd;
-	if((fd = fopen(filename,"r")) < 0){
+	FILE* fd;
+	if((fd = fopen(filename,"r")) < (FILE*)0){
 		perror("Fail to open");
 		exit(1);
 	}
-	if(fread(yuv422,640*480*2*FRAME_NUM,1,fd)<=0){
+	if(fread(yuv422,640*480*2,1,fd)<=0){
 		perror("Fail to read yuv422file");
 		exit(2);
 	}
@@ -45,40 +47,8 @@ int getsrcdata(const char *filename ,char *yuv422)
 	       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
 	return 0;
 }
-/*	transfrom yuv422 to yuv420p Color Space -csps
-	step 1: yuv422->yuv420
-	step 2: yuv420->yuv420p
-	because it seem that x264 need the frame pic format
-	is yuv420p. and the webcam get data format is yuyv
-	equ YUV422
-	NOTE:	i420 = yyyy+vv+uu ????误???
-		yv12/yuv420 = yyyy+uu+vv
-*/
-int yuv422Toyuv420p(const unsigned char* yuv422,unsigned char *yuv420p
-		    , int width,int hight)
-{
-	//yuv420p has  SIX byte per FOUR pixels : 6/4
-	// & At least 4 pixels per frame
-	//unsigned char yuv420p[width*hight*6/4];
-	int srclen=width*hight*4/2;
-	int i=0,y=0,v=width*hight,u=width*hight+width*hight/4;
-	for (i=0;i<srclen;i++){
-		if((i%4==0) || (i%4==2) ){
-			yuv420p[y++]=yuv422[i];
-			continue;
-		}
-		if(i%8==1){ //u0 u1减少到u
-			yuv420p[u++]=yuv422[i];
-			continue;
-		}
-		if(i%8==3){
-			yuv420p[v++]=yuv422[i];
-			continue;
-		}
-	}
-	return 0;
-}
-//处理nalu单元.回调函数;
+
+//处理nalu单元.回调函数;<del>
 void *nalu_process( x264_t *h, x264_nal_t *nal )
 {
 	h;
@@ -86,28 +56,24 @@ void *nalu_process( x264_t *h, x264_nal_t *nal )
 }
 int main()
 {
-	int fd;
-	unsigned char yuv422[640*480*4/2];
-//	getsrcdata("in-i422-yuv422p.raw",yuv422);
-	if((fd = fopen("in-i420-yuv420p.raw","r")) < 0){
-		perror("Fail to open");
+	FILE* fd;	FILE* fdout;
+	unsigned char yuv422[640*480*4/2];//一帧数据大小 4 byte per 2 pixels
+	//	getsrcdata("in-i422-yuv422p.raw",yuv422);
+	//IN FILE
+	fd = fopen("in-i420-yuv420p.raw","r");
+	if(fd< 0){
+		perror("Fail to open in file");
 		exit(1);
 	}
-//	if(fread(yuv422,640*480*2,1,fd)<=0){
-//		perror("Fail to read yuv422file");
-//		exit(2);
-//	}
-	//	unsigned char yuv422[640*480*4/2];
-	//	if(getsrcdata("test-YUYV-YUV422.raw",yuv422)==0){
-	//		printf("src data first 8 byte %X%X %X%X %X%X %X%X\n"
-	//		       ,yuv422[0],yuv422[1],yuv422[2],yuv422[3]
-	//		       , yuv422[4],yuv422[5],yuv422[6],yuv422[7]);
-	//		fflush(stdout);
-	//	}else{
-	//		perror("read src date err");
-	//		exit(4);
+	//OUT FILE 保存,useless
+	if((fdout = fopen("out.264","w")) < 0){
+		perror("Fail to open out file");
+		exit(1);
+	}
+	//	if(fread(yuv422,640*480*2,1,fd)<=0){
+	//		perror("Fail to read yuv422file");
+	//		exit(2);
 	//	}
-
 	//	unsigned char yuv420p[648*480*6/4];
 	//	yuv422Toyuv420p(yuv422,yuv420p,640,480);
 
@@ -135,6 +101,7 @@ int main()
 	param.i_log_level=X264_LOG_DEBUG;//输出调试信息
 	param.i_slice_max_size=MAX_RTP_PARK_SIZE;//
 	param.b_cabac=0;//   关闭CABAC编码；
+	param.i_bframe=2;
 	//应用参数
 	x264_param_apply_profile(&param, "baseline");//apply set
 	//After this you can initialize the encoder as follows
@@ -184,27 +151,107 @@ int main()
 	int j;int i;uint8_t outCanUse[1500];
 	int nal_encoder_size=0;
 	x264_encoder_headers(encoder,&nals,&i_nals);
-	for(j=0;j<FRAME_NUM;j++){
-		//read ONE frame from file To Plane
+	int size = nals[0].i_payload + nals[1].i_payload + nals[2].i_payload;
+
+	int ret_write_header=  fwrite( nals[0].p_payload, size, 1, (FILE*)fdout ) ;
+	if(ret_write_header<=0){
+		perror("write header");
+		exit(107);
+	}
+
+	//一帧的操作
+	int ret_write_frame=0;
+	for(j=0;j<FRAME_NUM;j+=2){
+		//x264_picture_init(&pic_in);
+		//read ONE frame src data from file To Plane 输入
 		fread(pic_in.img.plane[0],pic_in.img.i_stride[0],1,fd);//Y
 		fread(pic_in.img.plane[1],pic_in.img.i_stride[1],1,fd);//U
 		fread(pic_in.img.plane[2],pic_in.img.i_stride[2],1,fd);//V
+		//encode 编码
+		frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
+
+		if (!i_nals) {
+			//*buffersize=0;
+			return 1;
+		}
+		printf("***after x264_encoder_encode i_nals=%d\n",i_nals);
+		fflush(stdout);
+		//		for(i=0;i<i_nals;i++){
+		//			x264_nal_encode(encoder,&outCanUse,nals);
+		//		}
+		printf("***    frame_size=%d\n",frame_size);
+		uint8_t data[100000];
+		int i_size;
+		int i_data;
+		x264_nal_t *nal;
+		for(i=0;i<i_nals;i++){
+
+
+			x264_nal_encode( encoder, data, nal );
+
+			//把网络包写入到输出文件中去
+			ret_write_frame=fwrite(	nals[0].p_payload,
+						frame_size, 1, (FILE*)fdout );//这个是函数指针的形式，//p_write_nalu =
+
+		}
+		//		if( frame_size )
+		//		{
+		//			ret_write_frame=fwrite(
+		//						nals[0].p_payload,
+		//						frame_size, 1, (FILE*)fdout );
+		//			if(ret_write_frame<=0){
+		//				perror("write farme date");
+		//				exit("108");
+		//			}
+		//		}
+	}
+	int64_t last_dts = 0;
+	int64_t prev_dts = 0;
+	//	int64_t prev_dts = 0;
+	//int delayedframes=x264_encoder_delayed_frames( encoder );
+	//printf("delayedframes=%d\n",delayedframes);
+
+	while( x264_encoder_delayed_frames( encoder ) ){
+
+		//	for(i=0;i<50;i++){
+		printf("i=%d\n",i);
+		//x264_picture_init(&pic_in);
+		//read ONE frame src data from file To Plane 输入
+		//		fread(pic_in.img.plane[0],pic_in.img.i_stride[0],1,fd);//Y
+		//		fread(pic_in.img.plane[1],pic_in.img.i_stride[1],1,fd);//U
+		//		fread(pic_in.img.plane[2],pic_in.img.i_stride[2],1,fd);//V
+		//encode 编码
+		//frame_size= x264_encoder_encode(encoder,&nals,&i_nals,NULL,&pic_out);
 		frame_size= x264_encoder_encode(encoder,&nals,&i_nals,&pic_in,&pic_out);
 		if (!i_nals) {
 			//*buffersize=0;
 			return 1;
 		}
-		for(i=0;i<i_nals;i++){
-			x264_nal_encode(encoder,&outCanUse,nals);
+		printf("***i_nals=%d\n",i_nals);
+		fflush(stdout);
+		//		for(i=0;i<i_nals;i++){
+		//			x264_nal_encode(encoder,&outCanUse,nals);
+		//		}
+		int ret_write_frame=0;
+		if( frame_size )
+		{
+			ret_write_frame=fwrite(
+						nals[0].p_payload,
+						frame_size, 1, (FILE*)fdout );
+			if(ret_write_frame<=0){
+				perror("write farme date");
+				exit("108");
+			}
 		}
+
 	}
-	printf("frame_size  is %d\n ",frame_size);
-	if (frame_size < 0){// OK
-		perror("Encoder Encode Failed\n");
-		exit(103);
-	}
+	//	printf("frame_size  is %d\n ",frame_size);
+	//	if (frame_size < 0){// OK
+	//		perror("Encoder Encode Failed\n");
+	//		exit(103);
+	//	}
 	//debug print
-	printf("after encode pic %02X%02X %02X%02X %02X%02X %02X%02X\n",
+	printf("after encode pic: %02X%02X %02X%02X %02X%02X %02X%02X\n",
 	       pic_out.img.plane[0][0],
 	       pic_out.img.plane[0][1],
 	       pic_out.img.plane[0][2],
@@ -213,25 +260,12 @@ int main()
 	       pic_out.img.plane[0][5],
 	       pic_out.img.plane[0][6],
 	       pic_out.img.plane[0][7]);
-	fflush(stdout);
-	//保存
-	int fdout;
-	if((fdout = fopen("test-YUYV-YUV422-changed.raw","w")) < 0){
-		perror("Fail to open changed file");
-		exit(1);
-	}
-	if(fwrite(pic_out.img.plane[0],640*480*2,1,fdout)<=0){
-		perror("Fail to write farme file");
-		exit(2);
-	}
-	if(fclose(fdout)!=0){
-		perror("Fail to close farme file");
-		exit(3);
-	}
+	fflush(stdout);//立即输出
 
 	//读取buffer
 	int iFrames = x264_encoder_delayed_frames(encoder);
 	printf("当前编码器中缓存数据:%d帧\n",iFrames);
+	fflush(stdout);//立即输出
 	x264_picture_clean(&pic_in);
 	//x264_picture_clean(&pic_out);
 	//At last over encode close the encoder
@@ -239,6 +273,11 @@ int main()
 	fflush(stdout);
 	x264_encoder_close(encoder);
 
+	//close In & Out File
+	if(fclose(fdout)!=0){
+		perror("Fail to close farme file");
+		exit(3);
+	}
 	if(fclose(fd)!=0){
 		perror("Fail to close yuv422file");
 		exit(3);

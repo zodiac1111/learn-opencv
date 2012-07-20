@@ -5,16 +5,14 @@ CONFIG -= qt
 SOURCES += \
 	main.c \
 	image.c \
-    jpg.c \
-    bmp.c
+	 bmp.c
 
 
 
 
 HEADERS += \
-    main.h \
+	main.h \
 	image.h \
-    jpg.h \
     bmp.h \
     type.h
 
@@ -23,7 +21,7 @@ HEADERS += \
 LIBS += -L/usr/local/lib
 LIBS += -L/usr/lib
 
-#LIBS += -ljpeg
+LIBS += -ljpeg
 #LIBS += -lopencv_core \
 #	 -lopencv_highgui
 

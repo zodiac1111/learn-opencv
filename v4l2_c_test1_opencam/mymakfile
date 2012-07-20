@@ -1,0 +1,3 @@
+all:
+	arm-linux-gcc main.c bmp.c -o app
+	cp app /home/zodiac1111/tftpboot

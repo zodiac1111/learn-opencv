@@ -4,7 +4,7 @@
 
 #include <opencv2/highgui/highgui_c.h>//包含opencv库头文件
 #include <opencv2/core/core_c.h>
-#define OPEN_FROM_CAM 1
+#define OPEN_FROM_CAM
 int main( int argc, char** argv ) {//主函数
 	CvCapture *capture   = NULL;// 视频获取结构， 用来作为视频获取函数的一个参数
 	IplImage* frame=NULL;//申请IplImage类型指针，就是申请内存空间来存放每一帧图像

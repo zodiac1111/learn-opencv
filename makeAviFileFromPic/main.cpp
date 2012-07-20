@@ -17,9 +17,9 @@ int main()
 	const char *avi_out="/home/zodiac1111/arm/learn-opencv/makeAviFileFromPic/out.avi";
 	CvVideoWriter *writer=cvCreateVideoWriter(avi_out
 						  //解码器独立于opencv
-						  //,CV_FOURCC('X', 'V', 'I', 'D') //
+						  ,CV_FOURCC('X', 'V', 'I', 'D') //
 						  //,CV_FOURCC('x', '2', '6', '4')
-						  ,CV_FOURCC('X', '2', '6', '4') //h264的一种实现
+						  //,CV_FOURCC('X', '2', '6', '4') //h264的一种实现
 						  //,CV_FOURCC('Y', 'U', 'V', '9')
 						  ,fps
 						  ,size

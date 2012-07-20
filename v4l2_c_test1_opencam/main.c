@@ -1,11 +1,14 @@
 /*
+
 	企图用v4l直接调用摄像头获得数据
 	实现功能:
 		采集数据 格式YUYV
 		YUYV -> RGB888 -> bmpfile.
 		YUYV -> RGB888 -> Jpg file. could be 1 step?
 	TODO:
-		YUYV->jpg/jpg file
+		YUYV->jpg/jpg file (Done)
+		YUYV->H264
+	by zodiac1111 @20120713
 */
 #include "main.h"
 #include <stdio.h>
@@ -18,8 +21,8 @@
 #include <sys/mman.h>
 #include <assert.h>
 #include <linux/videodev2.h>
-#include <jpeglib.h>
-#include "jpg.h"
+//#include <jpeglib.h>
+//#include "jpg.h"
 #define c_width 640
 #define c_hight 480
 //#include <opencv/cvwimage.h>
@@ -36,7 +39,7 @@ int n_buffer = 0;
 int open_camer_device()
 {
 	int fd;
-	if((fd = open("/dev/video0",O_RDWR | O_NONBLOCK)) < 0){
+	if((fd = open("/dev/video1",O_RDWR )) < 0){
 		perror("Fail to open");
 		exit(EXIT_FAILURE);
 	}
@@ -49,8 +52,8 @@ int init_mmap(int fd)
 	struct v4l2_requestbuffers reqbuf;
 	bzero(&reqbuf,sizeof(reqbuf));
 	reqbuf.count = 4;
-	reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	reqbuf.memory = V4L2_MEMORY_MMAP;
+	reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;//摄像头 就是这个类型
+	reqbuf.memory = V4L2_MEMORY_MMAP; //内存映射模式
 	//申请视频缓冲区(这个缓冲区位于内核空间，需要通过mmap映射)
 	//这一步操作可能会修改reqbuf.count的值，修改为实际成功申请缓冲区个数
 	if(-1 == ioctl(fd,VIDIOC_REQBUFS,&reqbuf)){
@@ -106,6 +109,8 @@ int init_camer_device(int fd)
 	memset(&fmt,0,sizeof(fmt));
 	fmt.index = 0;
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	//枚举所有摄像头支持的图像格式
+	printf("vidoe format Supported\n");
 	while((ret = ioctl(fd,VIDIOC_ENUM_FMT,&fmt)) == 0){
 		fmt.index ++ ;
 		printf("{pixelformat = %c%c%c%c},description = '%s'\n",
@@ -113,6 +118,7 @@ int init_camer_device(int fd)
 		       (fmt.pixelformat >> 16) & 0xff,(fmt.pixelformat >> 24)&0xff,
 		       fmt.description);
 	}
+	printf("vidoe format enum end\n");
 	//查询视频设备驱动的功能
 	ret = ioctl(fd,VIDIOC_QUERYCAP,&cap);
 	if(ret < 0){
@@ -132,13 +138,17 @@ int init_camer_device(int fd)
 	//设置摄像头采集数据格式，如设置采集数据的
 	//长,宽，图像格式(JPEG,YUYV,MJPEG等格式)
 	stream_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	stream_fmt.fmt.pix.width = 680;
-	stream_fmt.fmt.pix.height = 480;
+	stream_fmt.fmt.pix.width = c_width;
+	stream_fmt.fmt.pix.height = c_hight;
 	stream_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+//	stream_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_JPEG;
 	stream_fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+	printf("set video format..\n");
 	if(-1 == ioctl(fd,VIDIOC_S_FMT,&stream_fmt)){
 		perror("Fail to ioctl:VIDIOC_S_FMT ");
 		exit(EXIT_FAILURE);
+	}else{
+		printf("set video format ok\n");
 	}
 	//初始化视频采集方式(mmap)
 	init_mmap(fd);
@@ -204,10 +214,10 @@ int process_image(void *addr,int length)
 	FILE *fp;
 	static int num = 0;
 	char picture_name[20];
+	printf("process-image len=%d\n",length);
 
-
-	//#define  YUYV_2_JPG_FILE
-#ifdef YUYV_2_JPG_FILE
+//#define  YUYV_2_JPG_FILE
+#ifdef YUYV_2_JPG_FILE //jpg压缩文件
 	sprintf(picture_name,"picture%d.jpg",num++);
 	u8 s[640*480*3]; int i=0;int j=0;int k=0;
 	u8 y1,u,y2,v; //依次读取4字节/2像素
@@ -238,13 +248,14 @@ int process_image(void *addr,int length)
 	usleep(500);
 
 #else
+
+#define CHANGE_PIC_FORMAT_TO_BMP  //转换图像格式YUYV RGB888 bmpfile
+#ifdef CHANGE_PIC_FORMAT_TO_BMP //bmp位图格式文件
 	sprintf(picture_name,"picture%d.bmp",num++);
-	if((fp = fopen(picture_name,"aw")) == NULL){
+	if((fp = fopen(picture_name,"w")) == NULL){
 		perror("Fail to fopen");
 		exit(EXIT_FAILURE);
 	}
-#define CHANGE_PIC_FORMAT_TO_BMP  //转换图像格式YUYV RGB888
-#ifdef CHANGE_PIC_FORMAT_TO_BMP
 	//每次读取4字节(2像素)的YUYV格式:Y0 U0 Y1 V0
 	//写入6字节(2像素) BGR BGR
 	u8 s[640*480*3]; int i=0;int j=0;int k=0;
@@ -267,13 +278,18 @@ int process_image(void *addr,int length)
 	if(fwrite(s,sizeof(s),1,fp)<=0){
 		perror("write data ");
 	}
-#else
+#else //原始格式图片
+	sprintf(picture_name,"picture%d.raw",num++);
+	if((fp = fopen(picture_name,"w")) == NULL){
+		perror("Fail to fopen");
+		exit(EXIT_FAILURE);
+	}
 	fwrite(addr,length,1,fp);
 #endif
 	usleep(500);
 	fclose(fp);
 #endif
-
+printf("end of process-image\n");
 	return 0;
 }
 
@@ -302,7 +318,7 @@ int read_frame(int fd)
 //主循环
 int mainloop(int fd)
 {
-	int count = 30;
+	int count = 3;
 	while(count-- > 0){
 		for(;;){
 			fd_set fds;
@@ -313,7 +329,9 @@ int mainloop(int fd)
 			/*Timeout*/
 			tv.tv_sec = 2;
 			tv.tv_usec = 0;
+			printf("start select count=%d\n",count);
 			r = select(fd+1 ,&fds,NULL,NULL,&tv);
+			printf("end of select r=%d\n",r);
 			if(-1 == r){
 				if(EINTR == errno)
 					continue;

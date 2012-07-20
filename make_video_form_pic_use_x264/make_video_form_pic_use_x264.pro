@@ -3,12 +3,16 @@ CONFIG += console125
 CONFIG -= qt
 
 SOURCES += \
-    main.c
+    main.c \
+    convert_csp.c
 
 HEADERS += \
-    main.h
+    main.h \
+    convert_csp.h
 LIBS += -L/usr/local/lib
+
 INCLUDEPATH += /usr/local/include/
+
 #x264 need these library
 LIBS += -lm \
 	-lpthread \
