@@ -16,7 +16,7 @@
 #include <x264_config.h>
 #include "main.h"
 #define FRAME_NUM (100) //编码帧数
-#define MAX_RTP_PARK_SIZE (1442) //最大网络分包大小 bytes
+#define MAX_RTP_PARK_SIZE (1500) //最大网络分包大小 bytes
 //parament
 #define W 640
 #define  H 480
