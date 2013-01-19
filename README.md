@@ -1,5 +1,6 @@
 opencv/v4l/x264/rtsp **学习**  
-
+这个项目已经很有没有更新了.
+这方面的学习先到此为止
 IDE为qt-creater qt4.8.0 fedora-17-i86  
 一些opencv练习例子来自https://www.opencvchina.com  
 pdf是官方文档.  
